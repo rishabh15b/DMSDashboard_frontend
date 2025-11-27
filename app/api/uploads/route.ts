@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+// Force dynamic rendering - this route should not be statically generated
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const files = formData.getAll("files");
