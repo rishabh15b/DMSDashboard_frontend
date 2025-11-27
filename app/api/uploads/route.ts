@@ -17,11 +17,13 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     
     // Forward the form data to the backend
+    // Important: Don't set Content-Type header - let fetch set it automatically for FormData
     const response = await fetch(`${BACKEND_URL}/api/uploads/`, {
       method: "POST",
       body: formData,
       cache: "no-store",
       signal: AbortSignal.timeout(60000), // 60 seconds for upload
+      // Don't set headers - fetch will automatically set Content-Type with boundary for FormData
     });
 
     if (!response.ok) {
