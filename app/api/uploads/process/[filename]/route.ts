@@ -5,7 +5,11 @@ export const dynamic = 'force-dynamic';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export async function POST(request: Request) {
+interface Params {
+  params: { filename: string };
+}
+
+export async function POST(_: Request, { params }: Params) {
   if (!BACKEND_URL) {
     return NextResponse.json(
       { error: "Backend API URL not configured" },
@@ -14,14 +18,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    const formData = await request.formData();
+    // Decode the filename in case it was URL encoded
+    const filename = decodeURIComponent(params.filename);
     
-    // Forward the form data to the backend
-    const response = await fetch(`${BACKEND_URL}/api/uploads/`, {
+    const response = await fetch(`${BACKEND_URL}/api/uploads/process/${encodeURIComponent(filename)}`, {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
       cache: "no-store",
-      signal: AbortSignal.timeout(60000), // 60 seconds for upload
+      signal: AbortSignal.timeout(60000), // 60 seconds for processing
     });
 
     if (!response.ok) {
@@ -32,10 +38,11 @@ export async function POST(request: Request) {
     const data = await response.json();
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error("Error uploading files to backend:", error);
+    console.error("Error processing PDF from backend:", error);
     return NextResponse.json(
-      { error: "Failed to upload files" },
+      { error: "Failed to process PDF" },
       { status: 500 }
     );
   }
 }
+

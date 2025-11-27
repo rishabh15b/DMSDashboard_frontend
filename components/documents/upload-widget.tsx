@@ -35,7 +35,7 @@ export function UploadWidget() {
       const formData = new FormData();
       acceptedFiles.forEach((file) => formData.append("files", file));
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/uploads/`, {
+      const response = await fetch(`/api/uploads/`, {
         method: "POST",
         body: formData
       });
@@ -73,7 +73,7 @@ export function UploadWidget() {
             
             try {
               setProcessingStatus(`Processing ${filename}...`);
-              const processResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/uploads/process/${encodeURIComponent(filename)}`, {
+              const processResponse = await fetch(`/api/uploads/process/${encodeURIComponent(filename)}`, {
                 method: "POST"
               });
               

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export async function POST(request: Request) {
+export async function GET() {
   if (!BACKEND_URL) {
     return NextResponse.json(
       { error: "Backend API URL not configured" },
@@ -14,28 +14,27 @@ export async function POST(request: Request) {
   }
 
   try {
-    const formData = await request.formData();
-    
-    // Forward the form data to the backend
-    const response = await fetch(`${BACKEND_URL}/api/uploads/`, {
-      method: "POST",
-      body: formData,
+    const response = await fetch(`${BACKEND_URL}/api/processed-documents/`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
       cache: "no-store",
-      signal: AbortSignal.timeout(60000), // 60 seconds for upload
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: `Status ${response.status}` }));
-      return NextResponse.json(errorData, { status: response.status });
+      throw new Error(`Backend API returned ${response.status}`);
     }
 
     const data = await response.json();
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error("Error uploading files to backend:", error);
+    console.error("Error fetching processed documents from backend:", error);
     return NextResponse.json(
-      { error: "Failed to upload files" },
+      { error: "Failed to fetch processed documents" },
       { status: 500 }
     );
   }
 }
+

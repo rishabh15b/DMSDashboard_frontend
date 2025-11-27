@@ -39,7 +39,7 @@ export function RecentDocuments() {
 
   const fetchRecentDocuments = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/processed-documents/`);
+      const response = await fetch(`/api/processed-documents/`);
       const data = await response.json();
       const allDocuments = data.documents || [];
       
@@ -102,12 +102,12 @@ export function RecentDocuments() {
 
     try {
       // Delete from database first
-      const dbDeleteResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/documents/${documentId}`, {
+      const dbDeleteResponse = await fetch(`/api/documents/${documentId}`, {
         method: 'DELETE'
       });
 
       // Also delete the processed JSON file
-      const jsonDeleteResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/processed-documents/${documentId}`, {
+      const jsonDeleteResponse = await fetch(`/api/processed-documents/${documentId}`, {
         method: 'DELETE'
       });
 
