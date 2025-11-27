@@ -40,9 +40,37 @@ export function DashboardScreen() {
   }
 
   if (isError || !data) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const isConfigError = errorMessage.includes("not configured") || errorMessage.includes("Cannot connect");
+    
     return (
-      <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6 text-sm text-rose-200">
-        Unable to load dashboard insights. {error instanceof Error ? error.message : null}
+      <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-rose-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-rose-200 mb-2">Unable to load dashboard insights</h3>
+            <p className="text-xs text-rose-300/80 mb-3">{errorMessage}</p>
+            {isConfigError && (
+              <div className="mt-4 p-3 rounded-lg bg-rose-500/20 border border-rose-500/30">
+                <p className="text-xs font-medium text-rose-200 mb-2">Configuration Required:</p>
+                <ol className="text-xs text-rose-300/80 space-y-1 list-decimal list-inside">
+                  <li>Deploy your backend to Railway or Render</li>
+                  <li>Get your backend URL (e.g., https://your-app.railway.app)</li>
+                  <li>In Vercel, go to Project Settings → Environment Variables</li>
+                  <li>Add: <code className="bg-rose-500/30 px-1 rounded">NEXT_PUBLIC_API_BASE_URL</code> = your backend URL</li>
+                  <li>Redeploy your frontend</li>
+                </ol>
+              </div>
+            )}
+            <button
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              className="mt-3 text-xs px-3 py-1.5 rounded border border-rose-500/50 bg-rose-500/20 text-rose-200 hover:bg-rose-500/30 transition-colors disabled:opacity-50"
+            >
+              {isRefetching ? "Retrying..." : "Retry"}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
