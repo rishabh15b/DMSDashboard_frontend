@@ -62,7 +62,12 @@ export function UploadWidget() {
       for (const upload of filesToProcess) {
         if (upload.location) {
           const filename = upload.location.split('/').pop();
-          if (filename && !processingFilesRef.current.has(filename)) {
+          if (!filename) {
+            console.warn("Could not extract filename from location:", upload.location);
+            continue;
+          }
+          
+          if (!processingFilesRef.current.has(filename)) {
             // Mark as processing to prevent duplicates
             processingFilesRef.current.add(filename);
             
@@ -108,7 +113,7 @@ export function UploadWidget() {
                 processingFilesRef.current.delete(filename);
               }, 10000);
             }
-          } else if (processingFilesRef.current.has(filename)) {
+          } else {
             console.log(`⏭️  Skipping duplicate processing for: ${filename}`);
           }
         }
@@ -141,7 +146,7 @@ export function UploadWidget() {
     } finally {
       isProcessingRef.current = false;
     }
-  }, []);
+  }, [queryClient]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
