@@ -31,8 +31,23 @@ export async function POST(_: Request, { params }: Params) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: `Status ${response.status}` }));
-      return NextResponse.json(errorData, { status: response.status });
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        const errorText = await response.text().catch(() => `Status ${response.status}`);
+        errorData = { detail: errorText };
+      }
+      
+      // Preserve the error structure from backend
+      return NextResponse.json(
+        {
+          ...errorData,
+          error: errorData.detail || errorData.error || `Processing failed with status ${response.status}`,
+          status: response.status
+        },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();

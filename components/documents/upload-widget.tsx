@@ -78,13 +78,18 @@ export function UploadWidget() {
               });
               
               if (!processResponse.ok) {
-                const errorData = await processResponse.json();
+                const errorData = await processResponse.json().catch(() => ({ 
+                  detail: `HTTP ${processResponse.status}: ${processResponse.statusText}` 
+                }));
+                
                 // Check if it's an "already exists" case - this is not an error
                 if (errorData.already_exists) {
                   console.log(`ℹ️  Document already processed: ${filename}`);
                   processedCount++; // Count as processed since it already exists
                 } else {
-                  console.error("PDF processing failed:", errorData.detail || errorData.error);
+                  const errorMessage = errorData.detail || errorData.error || errorData.message || `Processing failed with status ${processResponse.status}`;
+                  console.error(`PDF processing failed for ${filename}:`, errorMessage);
+                  setProcessingStatus(`Error processing ${filename}: ${errorMessage}`);
                   errorCount++;
                 }
               } else {
