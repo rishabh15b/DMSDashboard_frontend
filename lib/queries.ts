@@ -4,7 +4,8 @@ import {
   fetchDashboardInsights,
   fetchDocumentById,
   fetchDocuments,
-  fetchExceptions
+  fetchExceptions,
+  fetchMsaBuckets
 } from "@/lib/api";
 
 export function useDashboardQuery() {
@@ -57,5 +58,13 @@ export function useAlertsQuery() {
     },
     staleTime: 1000 * 10, // 10 seconds - refresh more frequently for real-time alerts
     refetchInterval: 1000 * 30 // Auto-refresh every 30 seconds
+  });
+}
+
+export function useMsaBucketsQuery() {
+  return useQuery({
+    queryKey: ["msa-buckets"],
+    queryFn: fetchMsaBuckets,
+    staleTime: 1000 * 60
   });
 }

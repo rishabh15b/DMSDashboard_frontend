@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Calendar, DollarSign, User, Building, Mail, Phone, MapPin, Trash2 } from "lucide-react";
+import { FileText, Calendar, User, Building, Mail, Phone, MapPin, Trash2 } from "lucide-react";
 
 interface ProcessedDocument {
   document_id: string;
@@ -34,6 +34,17 @@ export function ProcessedDocumentsViewer() {
   const [loading, setLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] = useState<ProcessedDocument | null>(null);
 
+  const sanitizeTitle = (value?: string) => value?.replace('--- Page 1 ---', '').trim();
+  const getDisplayTitle = (doc: ProcessedDocument) => {
+    return (
+      doc.extracted_data.client?.trim() ||
+      doc.extracted_data.po_number?.trim() ||
+      doc.extracted_data.invoice_number?.trim() ||
+      sanitizeTitle(doc.extracted_data.title) ||
+      "Document"
+    );
+  };
+
   useEffect(() => {
     fetchProcessedDocuments();
   }, []);
@@ -49,7 +60,7 @@ export function ProcessedDocumentsViewer() {
       const deduplicated = allDocuments.filter((doc: ProcessedDocument) => {
         // Create unique key for deduplication
         const key1 = doc.document_id;
-        const key2 = `${doc.extracted_data.title}_${doc.extracted_data.amount}_${doc.extracted_data.client}`;
+        const key2 = `${getDisplayTitle(doc)}_${doc.extracted_data.amount}_${doc.extracted_data.client}`;
         
         if (seen.has(key1) || seen.has(key2)) {
           return false; // Skip duplicate
@@ -188,9 +199,7 @@ export function ProcessedDocumentsViewer() {
                   <FileText className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white text-lg">
-                    {doc.extracted_data.title.replace('--- Page 1 ---', '').trim() || 'Document'}
-                  </h3>
+                  <h3 className="font-medium text-white text-lg">{getDisplayTitle(doc)}</h3>
                   <p className="text-sm text-slate-400">{doc.document_type}</p>
                 </div>
               </div>
@@ -224,11 +233,8 @@ export function ProcessedDocumentsViewer() {
                 </div>
               )}
               {doc.extracted_data.amount > 0 && (
-                <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-300">
-                    {doc.extracted_data.currency} {doc.extracted_data.amount.toLocaleString()}
-                  </span>
+                <div className="text-sm text-slate-300">
+                  {doc.extracted_data.currency} {doc.extracted_data.amount.toLocaleString()}
                 </div>
               )}
               {/* Show due_date if it exists, otherwise show regular date */}
@@ -287,25 +293,12 @@ export function ProcessedDocumentsViewer() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-white">Document Details</h3>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      deleteDocument(selectedDocument.document_id, e);
-                      setSelectedDocument(null);
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg transition-colors"
-                    title="Delete document"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </button>
-                  <button
-                    onClick={() => setSelectedDocument(null)}
-                    className="text-slate-400 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedDocument(null)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
               </div>
 
               <div className="space-y-6">
@@ -313,7 +306,7 @@ export function ProcessedDocumentsViewer() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-slate-400">Title</label>
-                    <p className="text-white">{selectedDocument.extracted_data.title}</p>
+                    <p className="text-white">{getDisplayTitle(selectedDocument)}</p>
                   </div>
                   <div>
                     <label className="text-sm text-slate-400">Type</label>

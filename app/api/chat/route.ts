@@ -11,6 +11,8 @@ interface ChatRequestBody {
 const knowledgeBase = `EMB Global focuses on an AI-powered DMS that ingests purchase orders, invoices, and service agreements.
 The system automates classification, OCR extraction, validation, linking, and alerts, and provides dashboards plus an upcoming conversational assistant.`;
 
+const lambdaUrl = process.env.NEXT_PUBLIC_LAMBDA_URL ?? process.env.LAMBDA_URL;
+
 export async function POST(request: Request) {
   const body = (await request.json()) as ChatRequestBody;
   const userMessage = body.message?.trim();
@@ -23,6 +25,40 @@ export async function POST(request: Request) {
   }
 
   let reply = "";
+
+  if (lambdaUrl) {
+    try {
+      const lambdaResponse = await fetch(lambdaUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          query: userMessage,
+          context: body.context
+        }),
+        cache: "no-store"
+      });
+
+      if (lambdaResponse.ok) {
+        const payload = (await lambdaResponse.json()) as {
+          answer?: string;
+          reply?: string;
+          message?: string;
+        };
+        return NextResponse.json(
+          { reply: payload.answer ?? payload.reply ?? payload.message ?? "The assistant couldn't craft a response." },
+          { status: 200 }
+        );
+      }
+
+      const errorDetail = await lambdaResponse.text();
+      console.error("Lambda chatbot returned non-200 response:", lambdaResponse.status, errorDetail);
+    } catch (error) {
+      console.error("Failed to reach chatbot Lambda:", error);
+    }
+    // fall through to scripted reply below if Lambda is unavailable
+  }
 
   if (/po|purchase order/i.test(userMessage)) {
     reply =
