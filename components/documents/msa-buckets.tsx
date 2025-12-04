@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Calendar, FileText, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -23,14 +23,18 @@ interface BucketColumnProps {
   emptyHelper: string;
   onDelete?: (doc: ApiDocument) => void;
   deletingId?: string | null;
+  subtitle?: string;
 }
 
-function BucketColumn({ title, documents, emptyHelper, onDelete, deletingId }: BucketColumnProps) {
+function BucketColumn({ title, documents, emptyHelper, onDelete, deletingId, subtitle }: BucketColumnProps) {
   return (
     <div className="rounded-2xl border border-slate-900/60 bg-slate-900/40 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-white">{title}</p>
-        <span className="text-xs text-slate-400">{documents.length} doc(s)</span>
+      <div className="flex flex-col mb-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-white">{title}</p>
+          <span className="text-xs text-slate-400">{documents.length} doc(s)</span>
+        </div>
+        {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
       </div>
       <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
         {documents.length === 0 ? (
@@ -153,6 +157,58 @@ export function MsaBuckets() {
     setMsaInput("");
   };
 
+  const buckets = useMemo(() => {
+    if (!data?.buckets) {
+      return [];
+    }
+
+    return data.buckets.map((bucket) => {
+      const normalized = {
+        ...bucket,
+        msa_documents: [] as ApiDocument[],
+        po_documents: [] as ApiDocument[],
+        invoice_documents: [] as ApiDocument[],
+        other_documents: bucket.other_documents ?? []
+      };
+
+      const allDocuments: ApiDocument[] = [
+        ...(bucket.msa_documents || []),
+        ...(bucket.po_documents || []),
+        ...(bucket.invoice_documents || [])
+      ];
+
+      const classify = (doc: ApiDocument) => {
+        const category = doc.category?.toLowerCase() ?? "";
+        const text = `${doc.title ?? ""} ${doc.po_number ?? ""} ${doc.invoice_number ?? ""}`.toLowerCase();
+
+        if (category.includes("service") && category.includes("agreement")) return "msa";
+        if (category.includes("invoice")) return "invoice";
+        if (category.includes("po")) return "po";
+
+        if (text.includes("msa") || text.includes("agreement") || text.includes("contract")) return "msa";
+        if (text.includes("invoice") || text.includes("inv")) return "invoice";
+        if (text.includes("po") || text.includes("purchase")) return "po";
+
+        return "other";
+      };
+
+      allDocuments.forEach((doc) => {
+        const type = classify(doc);
+        if (type === "msa") {
+          normalized.msa_documents.push(doc);
+        } else if (type === "invoice") {
+          normalized.invoice_documents.push(doc);
+        } else if (type === "po") {
+          normalized.po_documents.push(doc);
+        } else {
+          normalized.other_documents.push(doc);
+        }
+      });
+
+      return normalized;
+    });
+  }, [data?.buckets]);
+
   if (isLoading) {
     return (
       <div className="rounded-2xl border border-slate-900/60 bg-slate-900/70 p-6 text-sm text-slate-300 flex items-center gap-2">
@@ -169,8 +225,6 @@ export function MsaBuckets() {
       </div>
     );
   }
-
-  const buckets = data?.buckets ?? [];
 
   return (
     <section className="space-y-4">
@@ -234,9 +288,9 @@ export function MsaBuckets() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
-                  <BucketColumn title="Service Agreements" documents={bucket.msa_documents} emptyHelper="No agreements matched this number yet." onDelete={handleDelete} deletingId={deletingId} />
-                  <BucketColumn title="Purchase Orders" documents={bucket.po_documents} emptyHelper="No purchase orders reference this MSA." onDelete={handleDelete} deletingId={deletingId} />
-                  <BucketColumn title="Invoices" documents={bucket.invoice_documents} emptyHelper="No invoices reference this MSA." onDelete={handleDelete} deletingId={deletingId} />
+                  <BucketColumn title="Service Agreements" subtitle="Uploaded MSAs" documents={bucket.msa_documents} emptyHelper="No agreements matched this number yet." onDelete={handleDelete} deletingId={deletingId} />
+                  <BucketColumn title="Purchase Orders" subtitle="Linked POs" documents={bucket.po_documents} emptyHelper="No purchase orders reference this MSA." onDelete={handleDelete} deletingId={deletingId} />
+                  <BucketColumn title="Invoices" subtitle="Linked invoices" documents={bucket.invoice_documents} emptyHelper="No invoices reference this MSA." onDelete={handleDelete} deletingId={deletingId} />
                 </div>
 
                 {bucket.other_documents.length > 0 && (
